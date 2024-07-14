@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Scanner</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: rgb(194, 224, 119);
+            height: 100vh;
+            margin: 0;
+        }
+
+        h1, h3 {
+            text-align: center;
+        }
+        h1 {
+        font-family: 'Roboto', sans-serif; 
+        }
+
+
+        
+        button {
+            background-color: green;
+            color: white;
+            padding: 10px 20px;
+            font-size: 16px;
+            margin-top: 10px;
+            cursor: pointer;
+            outline: none;
+            border: none;
+            border-radius: 8px; 
+        }
+
+        #video {
+            margin-top: 10px;
+        }
+
+        #errorMessage {
+            color: red;
+            text-align: center;
+        }
+
+        #qrCodeData {
+            text-align: center;
+        }
+
+        .result-card {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-top: 20px;
+            display: block;
+            max-width: 600px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease-in-out;
+            border-radius: 8px; 
+            /* outline: none;  */
+            background-color: azure;
+        }
+
+        /* .result-card:hover {
+            transform: scale(1.05);
+        } */
+
+        .result-card h3 {
+            color: #101010;
+        }
+
+        .result-card p {
+            color: #080808;
+        }
+    </style>
+</head>
+<body>
+    <h1>Scan your QR Code to get Registration details:</h1>
+    <button id="startButton">Start Camera</button>
+    <button id="stopButton" style="display:none;">Stop Camera</button>
+    <video id="video" width="640" height="480" autoplay></video>
+    <p id="errorMessage"></p>
+    <h3 id="qrCodeData"></h3>
+    <div id="result" class="result-card"></div>
+
+    <script src="https://cdn.rawgit.com/cozmo/jsQR/master/dist/jsQR.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', (event) => {
+            const video = document.getElementById('video');
+            const startButton = document.getElementById('startButton');
+            const stopButton = document.getElementById('stopButton');
+            const errorMessage = document.getElementById('errorMessage');
+            const qrCodeData = document.getElementById('qrCodeData');
+            const resultElement = document.getElementById('result');
+
+            let stream;
+
+            startButton.addEventListener('click', () => {
+                // Reset error message
+                errorMessage.textContent = '';
+
+                resultElement.innerHTML = '';
+
+
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    // Access the camera
+                    navigator.mediaDevices.getUserMedia({ video: true })
+                        .then((videoStream) => {
+                            stream = videoStream;
+
+                            // Display the camera feed on the video element
+                            video.srcObject = stream;
+
+                            // Show stop button and hide start button
+                            startButton.style.display = 'none';
+                            stopButton.style.display = 'inline-block';
+
+                            // Listen for video frames and attempt to decode QR code
+                            video.addEventListener('loadeddata', decodeQRCode);
+                        })
+                        .catch((error) => {
+                            errorMessage.textContent = 'Error accessing the camera: ' + error.message;
+                        });
+                } else {
+                    errorMessage.textContent = 'getUserMedia is not supported in this browser';
+                }
+            });
+
+            stopButton.addEventListener('click', () => {
+                // Stop the camera and close the stream
+                if (stream) {
+                    const tracks = stream.getTracks();
+                    tracks.forEach(track => track.stop());
+                    video.srcObject = null;
+
+                    // Remove event listener
+                    video.removeEventListener('loadeddata', decodeQRCode);
+
+                    // Show start button and hide stop button
+                    startButton.style.display = 'inline-block';
+                    stopButton.style.display = 'none';
+
+                    // Clear QR code data display
+                    //qrCodeData.innerHTML = '';
+                }
+            });
+
+            function decodeQRCode() {
+                // Create a canvas element to capture the video frame
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const context = canvas.getContext('2d');
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                // Decode QR code using jsQR library
+                const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                const code = jsQR(imageData.data, canvas.width, canvas.height);
+
+                if (code) {
+                    // Display QR code data
+                    qrCodeData.innerHTML = 'QR Code Data: ' + code.data;
+                    //alert(code.data)
+                    sendScannedData(code.data);
+
+                    // Stop the camera after successful scan
+                    stopButton.click();
+                } else {
+                    // If no QR code is detected, wait for 2 seconds before listening for the next frame
+                    //setTimeout(() => {
+                        requestAnimationFrame(decodeQRCode);
+                    // }, 1000);
+                }
+            }
+
+            function sendScannedData(scannedData) {
+                const backendURL = 'http://localhost:3000/registration/' + encodeURIComponent(scannedData);
+
+                fetch(backendURL, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Scanned data sent successfully!', data);
+
+                    // Display the data on the UI
+                    displayDataOnUI(data);
+                })
+                .catch(error => {
+                    console.error('Error sending scanned data:', error);
+                });
+            }
+            function displayDataOnUI(data) {
+                // Create a card element
+                const cardElement = document.createElement('div');
+                cardElement.className = 'result-card';
+
+                // Destructure JSON data
+                const { id,name, college, email, usn, contact } = data;
+
+                // Create HTML content for the card
+                const cardContent = `
+                    <h3>Server Response</h3>
+                    <p>id    : ${id}</p>
+                    <p>event : ${name}</p>
+                    <p>amount: ${college}</p>
+                    <p>email : ${email}</p>
+                    <p>usn   : ${usn}</p>
+                    <p>contact  : ${contact}</p>
+                `;
+
+                // Set the inner HTML of the card
+                cardElement.innerHTML = cardContent;
+
+                // Set the position of the card to match the video element
+                const videoRect = video.getBoundingClientRect();
+                cardElement.style.position = 'absolute';
+                cardElement.style.top = videoRect.top +20+'px';
+                cardElement.style.alignSelf = videoRect.alignSelf + 'px';
+               
+
+                // Append the card to the result element
+                resultElement.innerHTML = '';
+                resultElement.appendChild(cardElement);
+
+                // Show the result card
+                resultElement.style.display = 'block';
+            }
+
+        });
+    </script>
+</body>
+</html>

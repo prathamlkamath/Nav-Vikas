@@ -1,0 +1,7 @@
+1. react app 
+  - form registration
+  - move the qr scanner page to react
+
+2. generate qr code on the service once data is added to db and send out email.
+
+3. add validation in both backend and frontend.
