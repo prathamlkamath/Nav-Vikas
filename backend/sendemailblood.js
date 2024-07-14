@@ -10,8 +10,8 @@ async function sendEmailsblood(users, camp, qrImageBuffer) {
   const transporter = nodemailer.createTransport({
     service: 'Gmail',
     auth: {
-        user: 'jpj41976@gmail.com', // Your email address
-        pass: 'susz wvhz axle ozmu' // Your email password
+        user: 'your email', // Your email address
+        pass: 'your password' // Your email password
     }
   });
   for (const user of users) {
