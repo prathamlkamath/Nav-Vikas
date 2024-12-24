@@ -14,7 +14,7 @@ const sendEmailsblood=require('./sendemailblood')
 // const sendEmailsblood = require('./sendemailblood');
 // mongoose.connect('mongodb://127.0.0.1:27017/trt')
 //mongodb+srv://pratham:<password>@navvikas.ydwytsk.mongodb.net/?retryWrites=true&w=majority&appName=Navvikas
-mongoose.connect('mongodb+srv://u2:1234@cluster1.nk68wj4.mongodb.net/?retryWrites=true&w=majority')
+mongoose.connect('mongodb+srv://move:move@cluster0.a8ihf.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0')
 .then(()=>console.log(" --> Connected to Db"))
 .catch((e)=>{console.log(e)})
 // mongodb://localhost:27017

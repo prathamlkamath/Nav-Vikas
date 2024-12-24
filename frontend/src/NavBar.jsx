@@ -17,6 +17,7 @@ function NavBar() {
       
         <ul className="hidden md:flex space-x-4">
           <li><Link to="/" className="text-white hover:text-gray-300">Home</Link></li>
+          <li><a className="text-white hover:text-gray-300" href="http://localhost/appoint/login.php">Appoint</a></li>
           <li><Link to="/login" className="text-white hover:text-gray-300">Login</Link></li>
           
           {/* <li><Link to="/register" className="text-white hover:text-gray-300">Register</Link></li> */}
